@@ -64,7 +64,7 @@ public class munchersOne extends BaseLearningAgent {
 			for(int p = 1; p <= AirCurrentGenerator.POWER_SETTINGS; p++) {
 				// creates a new directional action with the power set to full
 				// power can range from 1 ... AirCurrentGenerator.POWER_SETTINGS
-				potentials[i] = new AgentAction(3, d);
+				potentials[i] = new AgentAction(p, d);
 				i++;
 			}
 		}
