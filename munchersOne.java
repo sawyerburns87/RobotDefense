@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.Random;
+import java.util.ArrayList; 
 
 import jig.misc.rd.AirCurrentGenerator;
 import jig.misc.rd.Direction;
@@ -43,48 +44,36 @@ public class munchersOne extends BaseLearningAgent {
 	 * to see when a new capture happens.
 	 */
 	HashMap<AirCurrentGenerator, Integer> captureCount;
-
-	/**
-	 * Keep track of the agent's last action so we can reward it
-	 */
+	HashMap<AirCurrentGenerator, Integer> crystalCount;
 	HashMap<AirCurrentGenerator, AgentAction> lastAction;
 	
-	/**
-	 * This stores the possible actions that an agent many take in any
-	 * particular state.
-	 */
 	private static final AgentAction [] potentials;
 
 	static {
 		Direction [] dirs = Direction.values();
-		potentials = new AgentAction[dirs.length * AirCurrentGenerator.POWER_SETTINGS];
+		potentials = new AgentAction[dirs.length * 3];
 
 		int i = 0;
 		for(Direction d: dirs) {
-			for(int p = 1; p <= AirCurrentGenerator.POWER_SETTINGS; p++) {
-				// creates a new directional action with the power set to full
-				// power can range from 1 ... AirCurrentGenerator.POWER_SETTINGS
-				potentials[i] = new AgentAction(p, d);
-				i++;
-			}
+			// creates a new directional action with the power set to full
+			// power can range from 1 ... AirCurrentGenerator.POWER_SETTINGS
+			// Allow power settings 0, 2, and 4 only
+			potentials[i] = new AgentAction(0, d);
+			i++;
+			potentials[i] = new AgentAction(2, d);
+			i++;
+			potentials[i] = new AgentAction(4, d);
+			i++;
 		}
 
 	}
 	
 	public munchersOne() {
 		captureCount = new HashMap<AirCurrentGenerator,Integer>();
+		crystalCount = new HashMap<AirCurrentGenerator,Integer>();
 		lastAction = new HashMap<AirCurrentGenerator,AgentAction>();		
 	}
 	
-	/**
-	 * Step the agent by giving it a chance to manipulate the environment.
-	 * 
-	 * Here, the agent should look at information from its sensors and 
-	 * decide what to do.
-	 * 
-	 * @param deltaMS the number of milliseconds since the last call to step
-	 * 
-	 */
 	public void step(long deltaMS) {
 		StateVector state;
 		QMap qmap;
@@ -104,13 +93,16 @@ public class munchersOne extends BaseLearningAgent {
 				actions.put(state, new QMap(potentials));
 			}
 			if (captureCount.get(acg) == null) captureCount.put(acg, 0);
+			if (crystalCount.get(acg) == null) crystalCount.put(acg, acg.getConsumption());
 
 
 			// Check to see if an insect was just captured by comparing our
 			// cached value of the insects captured by each ACG with the
 			// most up-to-date value from the sensors
-			boolean justCaptured;
-			justCaptured = (captureCount.get(acg) < sensors.generators.get(acg));
+			boolean justCaptured = (captureCount.get(acg) < sensors.generators.get(acg));
+
+			int crystalsUsed = acg.getConsumption() - crystalCount.get(acg);
+			crystalCount.put(acg, acg.getConsumption());
 
 			// if this ACG has been selected by the user, we'll do some verbose printing
 			boolean verbose = (RobotDefense.getGame().getSelectedObject() == acg);
@@ -126,24 +118,27 @@ public class munchersOne extends BaseLearningAgent {
 					qmap.rewardAction(lastAction.get(acg), 10.0);
 					captureCount.put(acg,sensors.generators.get(acg));
 				}
+				//Negative reward for power usage
+				qmap.rewardAction(lastAction.get(acg), -crystalsUsed/24.0);
 
 				if (verbose) {
+					System.out.println("");
+					System.out.println("Crystal Consumed: " + crystalsUsed);
 					System.out.println("Last State for " + acg.toString() );
 					System.out.println(lastState.get(acg).representation());
 					System.out.println("Updated Last Action: " + qmap.getQRepresentation());
 				}
 			} 
 
-			// decide what to do now...
-			// first, get the action map associated with the current state
+			// get the action map associated with the current state
 			qmap = actions.get(state);
 
 			if (verbose) {
 				System.out.println("This State for Tower " + acg.toString() );
 				System.out.println(thisState.get(acg).representation());
 			}
-			// find the 'right' thing to do, and do it.
-			AgentAction bestAction = qmap.findBestAction(verbose);
+
+			AgentAction bestAction = qmap.findBestAction(verbose, lastAction.get(acg));
 			bestAction.doAction(acg);
 
 			// finally, store our action so we can reward it later.
@@ -182,7 +177,7 @@ public class munchersOne extends BaseLearningAgent {
 		 * @param verbose
 		 * @return
 		 */
-		public AgentAction findBestAction(boolean verbose) {
+		public AgentAction findBestAction(boolean verbose, AgentAction lastAct) {
 			int i,maxi,maxcount;
 			maxi=0;
 			maxcount = 1;
@@ -190,27 +185,43 @@ public class munchersOne extends BaseLearningAgent {
 			if (verbose)
 				System.out.print("Picking Best Actions: " + getQRepresentation());
 
+			ArrayList<Integer> posMoves = new ArrayList<Integer>();
 			for (i = 1; i < utility.length; i++) {
 				if (utility[i] > utility[maxi]) {
 					maxi = i;
 					maxcount = 1;
+					posMoves.clear();
+					posMoves.add(i);
 				}
 				else if (utility[i] == utility[maxi]) {
+					posMoves.add(i);
 					maxcount++;
 				}
 			}
-			if (RN.nextDouble() > .2) {
+
+			//IF there are a lot of moves with the same utility, more likely to do random move
+			double percSame = (posMoves.size() * 1.0 / actions.length);
+			if (RN.nextDouble() > percSame/2.0) {
 				int whichMax = RN.nextInt(maxcount);
 
 				if (verbose)
 					System.out.println( " -- Doing Best! #" + whichMax);
 
-				for (i = 0; i < utility.length; i++) {
-					if (utility[i] == utility[maxi]) {
-						if (whichMax == 0) return actions[i];
-						whichMax--;
+				//IF ZERO THEN DO NO POWER - ALSO REMOVE 0 POWER OPTION FROM POTENTIAL MOVES
+				if(posMoves.size() == 1){
+					if(verbose) System.out.println("Single best action");
+					return actions[posMoves.get(0)];
+				}
+				else if(posMoves.size() > 1 && lastAct != null){
+					for(int a = 0; a < posMoves.size(); a++){
+						if(actions[a].getDirection() == lastAct.getDirection() && actions[a].getPower() == lastAct.getPower()){
+							if(verbose) System.out.println("Matched last: " + a + " out of " + actions.length);
+							return actions[a];
+						}
 					}
 				}
+
+				if(verbose) System.out.println("No consistent action: " + maxi + " out of " + actions.length);
 				return actions[maxi];
 			}
 			else {
