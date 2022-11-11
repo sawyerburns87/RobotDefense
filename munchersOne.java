@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.Random;
+import java.util.ArrayList; 
 
 import jig.misc.rd.AirCurrentGenerator;
 import jig.misc.rd.Direction;
@@ -57,16 +58,18 @@ public class munchersOne extends BaseLearningAgent {
 
 	static {
 		Direction [] dirs = Direction.values();
-		potentials = new AgentAction[dirs.length * AirCurrentGenerator.POWER_SETTINGS];
+		potentials = new AgentAction[dirs.length * 3];
 
 		int i = 0;
 		for(Direction d: dirs) {
-			for(int p = 1; p <= AirCurrentGenerator.POWER_SETTINGS; p++) {
 				// creates a new directional action with the power set to full
 				// power can range from 1 ... AirCurrentGenerator.POWER_SETTINGS
-				potentials[i] = new AgentAction(p, d);
+				potentials[i] = new AgentAction(0, d);
 				i++;
-			}
+				potentials[i] = new AgentAction(2, d);
+				i++;
+				potentials[i] = new AgentAction(4, d);
+				i++;
 		}
 
 	}
@@ -143,7 +146,7 @@ public class munchersOne extends BaseLearningAgent {
 				System.out.println(thisState.get(acg).representation());
 			}
 			// find the 'right' thing to do, and do it.
-			AgentAction bestAction = qmap.findBestAction(verbose);
+			AgentAction bestAction = qmap.findBestAction(verbose, lastAction.get(acg));
 			bestAction.doAction(acg);
 
 			// finally, store our action so we can reward it later.
@@ -182,7 +185,7 @@ public class munchersOne extends BaseLearningAgent {
 		 * @param verbose
 		 * @return
 		 */
-		public AgentAction findBestAction(boolean verbose) {
+		public AgentAction findBestAction(boolean verbose, AgentAction lastAct) {
 			int i,maxi,maxcount;
 			maxi=0;
 			maxcount = 1;
@@ -205,12 +208,23 @@ public class munchersOne extends BaseLearningAgent {
 				if (verbose)
 					System.out.println( " -- Doing Best! #" + whichMax);
 
+				ArrayList<Integer> posMoves = new ArrayList<Integer>();
 				for (i = 0; i < utility.length; i++) {
 					if (utility[i] == utility[maxi]) {
-						if (whichMax == 0) return actions[i];
-						whichMax--;
+						posMoves.add(i);
 					}
 				}
+				//IF ZERO THEN DO NO POWER - ALSO REMOVE 0 POWER OPTION FROM POTENTIAL MOVES
+				if(posMoves.size() == 1){
+					return actions[posMoves.get(0)];
+				}
+				else if(posMoves.size() > 1){
+					for(int a = 0; a < posMoves.size(); a++){
+						if(actions[a] == lastAct)
+							return actions[a];
+					}
+				}
+					
 				return actions[maxi];
 			}
 			else {
