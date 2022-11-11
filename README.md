@@ -1,7 +1,10 @@
 # RobotDefense
 
 ### Description
-- 
+- #### How to run
+  - Ensure that you are in the correct directory that contains the project itself
+  - First, build the agent: javac -cp rd881.jar *.java
+  - Then run the jar file itself: java -jar rd881.jar
 
 ### What has been changed
 - #### Part One
@@ -17,4 +20,4 @@
   - Changing the method of tie breaking for equally valued actions so that the agent is more likely to keep doing the same action if two or more have the same action value
     - All changes are still in *munchersOne.java*
     - When there are multiple actions that are tied *for* the best utility, put them into an ArrayList
-    
+    - Iterate through the arrayList and test if *any* are equal to the current action, if so, pick that action
