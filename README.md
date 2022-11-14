@@ -27,4 +27,4 @@
     - Next, we implemented gamma and alpha values to be used for calculations later down the line
     - The attempts array was deleted in order for the new equation to be implemented
     - In order to find the maximum Q in the next state, we implemented a new function named maxQ
-    - 
+    - Finally, the new q learning algorithm was created: *utility[i] = utility[i] + alpha * (value + (gamma * nextMap.maxQ()) - utility[i])*
