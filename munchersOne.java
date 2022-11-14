@@ -115,11 +115,11 @@ public class munchersOne extends BaseLearningAgent {
 
 				if (justCaptured) {
 					// capturing insects is good
-					qmap.rewardAction(lastAction.get(acg), 10.0);
+					qmap.rewardAction(lastAction.get(acg), 10.0, actions.get(lastState.get(acg)) );
 					captureCount.put(acg,sensors.generators.get(acg));
 				}
 				//Negative reward for power usage
-				qmap.rewardAction(lastAction.get(acg), -crystalsUsed/24.0);
+				qmap.rewardAction(lastAction.get(acg), -crystalsUsed/24.0, actions.get(lastState.get(acg)));
 
 				if (verbose) {
 					System.out.println("");
@@ -152,10 +152,12 @@ public class munchersOne extends BaseLearningAgent {
 	 * This inner class simply helps to associate actions with utility values
 	 */
 	static class QMap {
+		double gamma = 0.9;
+		double alpha = 0.1;
+
 		static Random RN = new Random();
 
 		private double[] utility; 		// current utility estimate
-		private int[] attempts;			// number of times action has been tried
 		private AgentAction[] actions;  // potential actions to consider
 
 		public QMap(AgentAction[] potential_actions) {
@@ -164,11 +166,20 @@ public class munchersOne extends BaseLearningAgent {
 			int len = actions.length;
 
 			utility = new double[len];
-			attempts = new int[len];
 			for(int i = 0; i < len; i++) {
 				utility[i] = 0.0;
-				attempts[i] = 0;
 			}
+		}
+
+		double maxQ(){
+			int maxi = 0;
+			for(int i = 1; i < utility.length; i++){
+				if(utility[i] > utility[maxi]){
+					maxi = i;
+				}
+			}
+
+			return utility[maxi];
 		}
 
 		/**
@@ -239,7 +250,7 @@ public class munchersOne extends BaseLearningAgent {
 		 * @param a the action performed 
 		 * @param value the reward received
 		 */
-		public void rewardAction(AgentAction a, double value) {
+		public void rewardAction(AgentAction a, double value, QMap nextMap) {
 			int i;
 			for (i = 0; i < actions.length; i++) {
 				if (a == actions[i]) break;
@@ -249,9 +260,8 @@ public class munchersOne extends BaseLearningAgent {
 				return;
 			}
 
-			utility[i] = (utility[i] * attempts[i]) + value;
-			attempts[i] = attempts[i] + 1;
-			utility[i] = utility[i]/attempts[i];
+			//new qlearning algorithm
+			utility[i] = utility[i] + alpha * (value + (gamma * nextMap.maxQ()) - utility[i]);
 		}
 		/**
 		 * Gets a string representation (for debugging).
