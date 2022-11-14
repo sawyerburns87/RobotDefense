@@ -21,3 +21,10 @@
     - All changes are still in *munchersOne.java*
     - When there are multiple actions that are tied *for* the best utility, put them into an ArrayList
     - Iterate through the arrayList and test if *any* are equal to the current action, if so, pick that action
+  - Implementing Q learning
+    - In order to implement Q learning, we had to edit the basic learning that was already provided
+    - First, *rewardAction* was edited to allow the access of the next map
+    - Next, we implemented gamma and alpha values to be used for calculations later down the line
+    - The attempts array was deleted in order for the new equation to be implemented
+    - In order to find the maximum Q in the next state, we implemented a new function named maxQ
+    - 
