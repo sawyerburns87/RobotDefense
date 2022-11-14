@@ -16,6 +16,8 @@
   - Modifying the agent so that it considers a wider variety of actions
     - Instead of using max power for *all* actions, we use power 2 and power 4 for *all* directions
     - The agent should already have the capability to learn which to use and when
+  - 1d
+    - In order to get the agent to perform well on the other maps, we did two things: penalizing the agent if it didn't capture the bug by a negative value, and editing the reward value for the other maps
 - #### Part 2
   - Changing the method of tie breaking for equally valued actions so that the agent is more likely to keep doing the same action if two or more have the same action value
     - All changes are still in *munchersOne.java*
