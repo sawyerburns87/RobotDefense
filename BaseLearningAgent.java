@@ -94,6 +94,10 @@ public abstract class BaseLearningAgent implements RobotDefenseAgent {
 		return sensors;
 	}
 
+	public LearningAgentSensorSystem getSensorySensors(){
+		return sensors;
+	}
+
 	/**
 	 * This is a high level function for subclasses of the BaseLearningAgent.
 	 * It is used to determine whether the local state (as represented by a state
@@ -202,6 +206,14 @@ class LearningAgentSensorSystem implements AgentSensoryInterface {
 			return r;
 		} catch (ArrayIndexOutOfBoundsException aob) {
 			return CellContents.getOutOfBoundsContentsCode();
+		}
+	}
+
+	public int getMapInsectCode(int gx, int gy, AirCurrentGenerator acg) {
+		try {
+			return map[gx][gy].getAirAndInsect(acg);
+		} catch (ArrayIndexOutOfBoundsException aob) {
+			return 0;
 		}
 	}
 

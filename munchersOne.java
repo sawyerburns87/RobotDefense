@@ -58,6 +58,8 @@ public class munchersOne extends BaseLearningAgent {
 			// creates a new directional action with the power set to full
 			// power can range from 1 ... AirCurrentGenerator.POWER_SETTINGS
 			// Allow power settings 0, 2, and 4 only
+			//potentials[i] = new AgentAction(0, d);
+			//i++;
 			potentials[i] = new AgentAction(0, d);
 			i++;
 			potentials[i] = new AgentAction(2, d);
@@ -104,6 +106,8 @@ public class munchersOne extends BaseLearningAgent {
 			int crystalsUsed = acg.getConsumption() - crystalCount.get(acg);
 			crystalCount.put(acg, acg.getConsumption());
 
+			int lastStateInsectsSucked = lastState.get(acg).insectsSucked(acg, getSensorySensors());
+
 			// if this ACG has been selected by the user, we'll do some verbose printing
 			boolean verbose = (RobotDefense.getGame().getSelectedObject() == acg);
 
@@ -115,15 +119,20 @@ public class munchersOne extends BaseLearningAgent {
 
 				if (justCaptured) {
 					// capturing insects is good
-					qmap.rewardAction(lastAction.get(acg), 10.0);
+					qmap.rewardAction(lastAction.get(acg), 15.0);
 					captureCount.put(acg,sensors.generators.get(acg));
 				}
 				//Negative reward for power usage
 				qmap.rewardAction(lastAction.get(acg), -crystalsUsed/24.0);
+				if(lastStateInsectsSucked > 0)
+					qmap.rewardAction(lastAction.get(acg), lastStateInsectsSucked * 2);
+				else
+					qmap.rewardAction(lastAction.get(acg), lastStateInsectsSucked / 2.0);
 
 				if (verbose) {
 					System.out.println("");
 					System.out.println("Crystal Consumed: " + crystalsUsed);
+					System.out.println("Insects being sucked: " + lastStateInsectsSucked);
 					System.out.println("Last State for " + acg.toString() );
 					System.out.println(lastState.get(acg).representation());
 					System.out.println("Updated Last Action: " + qmap.getQRepresentation());
@@ -198,18 +207,20 @@ public class munchersOne extends BaseLearningAgent {
 					maxcount++;
 				}
 			}
-
-			//IF there are a lot of moves with the same utility, more likely to do random move
+			
 			double percSame = (posMoves.size() * 1.0 / actions.length);
-			if (RN.nextDouble() > percSame/2.0) {
-				int whichMax = RN.nextInt(maxcount);
 
+			//change power if random, change any if percSame is also high
+			if(RN.nextDouble() < 0.35 && percSame > 0.5){
+				int which = RN.nextInt(actions.length);
 				if (verbose)
-					System.out.println( " -- Doing Best! #" + whichMax);
+					System.out.println( " -- Doing Random (" + which + ")!!");
 
-				//IF ZERO THEN DO NO POWER - ALSO REMOVE 0 POWER OPTION FROM POTENTIAL MOVES
+				return actions[which];
+			}
+			else {
 				if(posMoves.size() == 1){
-					if(verbose) System.out.println("Single best action");
+					if(verbose) System.out.println("Single best action: #" + posMoves.get(0));
 					return actions[posMoves.get(0)];
 				}
 				else if(posMoves.size() > 1 && lastAct != null){
@@ -223,13 +234,6 @@ public class munchersOne extends BaseLearningAgent {
 
 				if(verbose) System.out.println("No consistent action: " + maxi + " out of " + actions.length);
 				return actions[maxi];
-			}
-			else {
-				int which = RN.nextInt(actions.length);
-				if (verbose)
-					System.out.println( " -- Doing Random (" + which + ")!!");
-
-				return actions[which];
 			}
 		}
 

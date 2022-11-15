@@ -126,7 +126,7 @@ public class StateVector {
 		// BOTTOM Part (South of Tower)
 		for (int y = acg_y + acg.getGridHeight(), ye = acg_y + acg.getGridHeight() + RADIUS; y < ye; y++) {
 			for(int x = acg_x - RADIUS, xe = acg_x+RADIUS+acg.getGridWidth(); x < xe; x++) {
-				code = sensors.getMapContentsCode(x,y);
+				code = sensors.getMapContentsCode(x, y);
 				s.cellContentsCode[i++] = code;
 				s.hashCode += code;
 			}
@@ -203,7 +203,36 @@ public class StateVector {
 		
 		return sb.toString();
 	}
-	
+	public int insectsSucked(AirCurrentGenerator acg, LearningAgentSensorSystem sensors){
+
+		int acg_y = acg.getGridY();
+		int acg_x = acg.getGridX();
+
+		int code = 0;
+		// TOP Part (North of Tower)
+		for (int y = acg_y - RADIUS; y < acg_y; y++) {
+			for(int x = acg_x - RADIUS, xe = acg_x+RADIUS+acg.getGridWidth(); x < xe; x++) {
+				code += sensors.getMapInsectCode(x,y, acg);
+			}
+		}		
+		// LEFT & RIGHT Parts (East and West of Tower)
+		for (int y = acg_y, ye = acg_y + acg.getGridHeight(); y < ye; y++) {
+			for(int x = acg_x - RADIUS; x < acg_x; x++) {
+				code += sensors.getMapInsectCode(x,y,acg);
+			}
+			for(int x = acg_x + acg.getGridWidth(), xe = acg_x + acg.getGridWidth() + RADIUS; x < xe; x++) {
+				code += sensors.getMapInsectCode(x,y,acg);
+			}
+
+		}
+		// BOTTOM Part (South of Tower)
+		for (int y = acg_y + acg.getGridHeight(), ye = acg_y + acg.getGridHeight() + RADIUS; y < ye; y++) {
+			for(int x = acg_x - RADIUS, xe = acg_x+RADIUS+acg.getGridWidth(); x < xe; x++) {
+				code += sensors.getMapInsectCode(x, y,acg);
+			}
+		}
+		return code;
+	}
 }
 
 /**
@@ -319,6 +348,29 @@ class CellContents {
 			}
 		}
 		return code;
+	}
+	public double getAirCurrentCode(AirCurrentGenerator acg){
+		try{
+			double airFlow = (Math.abs(aircurrents.get(acg).getX()) + Math.abs(aircurrents.get(acg).getY())) / 2.0;
+			return airFlow;
+		}
+		catch(NullPointerException e){
+			return 0;
+		}
+	}
+
+	//return number of insects if they are being sucked in a block
+	public int getAirAndInsect(AirCurrentGenerator acg){
+		int cellContent = getContentsCode();
+		if(getAirCurrentCode(acg) > 0 && cellContent > 0){
+			return insects.size();
+		}
+		else if(cellContent > 0){
+			return -insects.size();
+		}
+		else{
+			return 0;
+		}
 	}
 }
 
