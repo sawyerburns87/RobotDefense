@@ -44,14 +44,22 @@ public class munchersOne extends BaseLearningAgent {
 	 * to see when a new capture happens.
 	 */
 	HashMap<AirCurrentGenerator, Integer> captureCount;
+
+	//reward for sucking a bug but if stuck at same action for > 3 states, start negative reward
+	HashMap<AirCurrentGenerator, Integer> concurrentCount;
+	double[] concurrentRewardScl = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1.5,-2,-2,-5,-5,-5,-5,-5,-5,-5,-5,-5,-5,-5,-5,-5,-5,-5,-5,-5,-5,-5,-5,-5,-5,-5,-5,-5,-5,-5,-5,-5,-5,-5,-5,-5,-5,-5,-5,-5,-5};
+
 	HashMap<AirCurrentGenerator, Integer> crystalCount;
 	HashMap<AirCurrentGenerator, AgentAction> lastAction;
-	
+
 	private static final AgentAction [] potentials;
+
+	double runningMS;
+	double targetMS = 200;
 
 	static {
 		Direction [] dirs = Direction.values();
-		potentials = new AgentAction[dirs.length * 3];
+		potentials = new AgentAction[dirs.length * 5];
 
 		int i = 0;
 		for(Direction d: dirs) {
@@ -62,7 +70,11 @@ public class munchersOne extends BaseLearningAgent {
 			//i++;
 			potentials[i] = new AgentAction(0, d);
 			i++;
+			potentials[i] = new AgentAction(1, d);
+			i++;
 			potentials[i] = new AgentAction(2, d);
+			i++;
+			potentials[i] = new AgentAction(3, d);
 			i++;
 			potentials[i] = new AgentAction(4, d);
 			i++;
@@ -73,6 +85,7 @@ public class munchersOne extends BaseLearningAgent {
 	public munchersOne() {
 		captureCount = new HashMap<AirCurrentGenerator,Integer>();
 		crystalCount = new HashMap<AirCurrentGenerator,Integer>();
+		concurrentCount = new HashMap<AirCurrentGenerator,Integer>();
 		lastAction = new HashMap<AirCurrentGenerator,AgentAction>();		
 	}
 	
@@ -83,10 +96,15 @@ public class munchersOne extends BaseLearningAgent {
 		// This must be called each step so that the performance log is 
 		// updated.
 		updatePerformanceLog();
-		
-		for (AirCurrentGenerator acg : sensors.generators.keySet()) {
-			if (!stateChanged(acg)) continue;
 
+		runningMS += deltaMS;
+		if(runningMS < targetMS)
+			return;
+		else
+			runningMS = 0;
+
+		for (AirCurrentGenerator acg : sensors.generators.keySet()) {
+			stateChanged(acg);
 
 			// Check the current state, and make sure member variables are
 			// initialized for this particular state...
@@ -94,6 +112,8 @@ public class munchersOne extends BaseLearningAgent {
 			if (actions.get(state) == null) {
 				actions.put(state, new QMap(potentials));
 			}
+
+			if (concurrentCount.get(acg) == null) concurrentCount.put(acg, 0);
 			if (captureCount.get(acg) == null) captureCount.put(acg, 0);
 			if (crystalCount.get(acg) == null) crystalCount.put(acg, acg.getConsumption());
 
@@ -111,33 +131,49 @@ public class munchersOne extends BaseLearningAgent {
 			// if this ACG has been selected by the user, we'll do some verbose printing
 			boolean verbose = (RobotDefense.getGame().getSelectedObject() == acg);
 
+			boolean isEmptySpace = lastState.get(acg).hashCode() == lastState.get(acg).emptyHash();
+
 			// If we did something on the last 'turn', we need to reward it
 			if (lastAction.get(acg) != null ) {
-
 				// get the action map associated with the previous state
 				qmap = actions.get(lastState.get(acg));
+				double rewardStep = 0;
 
+				//Negative reward for power usage
+				//rewardStep += -(crystalsUsed-2)/24.0;
+				if(isEmptySpace && lastAction.get(acg).getPower() == 0){
+					rewardStep += 5;
+				}
+				else if(isEmptySpace && lastAction.get(acg).getPower() != 0){
+					rewardStep -= 5;
+				}
+				
 				if (justCaptured) {
 					// capturing insects is good
-					qmap.rewardAction(lastAction.get(acg), 15.0);
+					rewardStep += 50.0;
 					captureCount.put(acg,sensors.generators.get(acg));
 				}
-				//Negative reward for power usage
-				qmap.rewardAction(lastAction.get(acg), -crystalsUsed/24.0);
+
+				
 				if(lastStateInsectsSucked > 0)
-					qmap.rewardAction(lastAction.get(acg), lastStateInsectsSucked * 2);
+					rewardStep += lastStateInsectsSucked * 2.0;
 				else
-					qmap.rewardAction(lastAction.get(acg), lastStateInsectsSucked / 2.0);
+					rewardStep += lastStateInsectsSucked;
+				//rewardStep = concurrentRewardScl[concurrentCount.get(acg)] * Math.abs(rewardStep);
+
+				qmap.rewardAction(lastAction.get(acg), rewardStep, actions.get(lastState.get(acg)));
 
 				if (verbose) {
 					System.out.println("");
+					System.out.println("Is Empty Space: " + isEmptySpace);
+					System.out.println("Concurrent Actions: " + concurrentCount.get(acg));
 					System.out.println("Crystal Consumed: " + crystalsUsed);
 					System.out.println("Insects being sucked: " + lastStateInsectsSucked);
 					System.out.println("Last State for " + acg.toString() );
 					System.out.println(lastState.get(acg).representation());
 					System.out.println("Updated Last Action: " + qmap.getQRepresentation());
 				}
-			} 
+			}
 
 			// get the action map associated with the current state
 			qmap = actions.get(state);
@@ -150,9 +186,15 @@ public class munchersOne extends BaseLearningAgent {
 			AgentAction bestAction = qmap.findBestAction(verbose, lastAction.get(acg));
 			bestAction.doAction(acg);
 
+			if(lastAction.get(acg) != null && bestAction.getDirection() == lastAction.get(acg).getDirection() && bestAction.getPower() == lastAction.get(acg).getPower()){
+				concurrentCount.put(acg, concurrentCount.get(acg)+1);
+			}
+			else{
+				concurrentCount.put(acg, 0);
+			}
+
 			// finally, store our action so we can reward it later.
 			lastAction.put(acg, bestAction);
-
 		}
 	}
 
@@ -163,8 +205,10 @@ public class munchersOne extends BaseLearningAgent {
 	static class QMap {
 		static Random RN = new Random();
 
+		double gamma = 0.9;
+		double alpha = 0.1;
+
 		private double[] utility; 		// current utility estimate
-		private int[] attempts;			// number of times action has been tried
 		private AgentAction[] actions;  // potential actions to consider
 
 		public QMap(AgentAction[] potential_actions) {
@@ -173,11 +217,30 @@ public class munchersOne extends BaseLearningAgent {
 			int len = actions.length;
 
 			utility = new double[len];
-			attempts = new int[len];
 			for(int i = 0; i < len; i++) {
 				utility[i] = 0.0;
-				attempts[i] = 0;
 			}
+		}
+
+		double maxQ(){
+			int maxi = 0;
+			for(int i = 1; i < utility.length; i++){
+				if(utility[i] > utility[maxi]){
+					maxi = i;
+				}
+			}
+
+			return utility[maxi];
+		}
+
+		AgentAction differentPower(AgentAction startAction){
+			ArrayList<Integer> potentialActions = new ArrayList<Integer>();
+			for(int i = 0; i < actions.length; i++){
+				if(actions[i].getDirection() == startAction.getDirection() && startAction != actions[i]){
+					potentialActions.add(i);
+				}
+			}
+			return actions[potentialActions.get(Math.abs(RN.nextInt()) % potentialActions.size())];
 		}
 
 		/**
@@ -209,30 +272,36 @@ public class munchersOne extends BaseLearningAgent {
 			}
 			
 			double percSame = (posMoves.size() * 1.0 / actions.length);
-
 			//change power if random, change any if percSame is also high
-			if(RN.nextDouble() < 0.35 && percSame > 0.5){
+			if(utility[maxi] <= 0){
 				int which = RN.nextInt(actions.length);
 				if (verbose)
-					System.out.println( " -- Doing Random (" + which + ")!!");
+					System.out.println( " -- Doing Random (" + which + ")!!" + " - Util: " + utility[which]);
 
 				return actions[which];
 			}
 			else {
 				if(posMoves.size() == 1){
-					if(verbose) System.out.println("Single best action: #" + posMoves.get(0));
-					return actions[posMoves.get(0)];
+					int singleIndex = posMoves.get(0);
+					if(verbose) System.out.println("Single best action: #" + singleIndex + " - Util: " + utility[singleIndex]);
+					if(utility[singleIndex] < 5 && utility[singleIndex] > 0.05 && RN.nextDouble() < 0.5){
+						return differentPower(actions[singleIndex]);
+					}
+					return actions[singleIndex];
 				}
 				else if(posMoves.size() > 1 && lastAct != null){
 					for(int a = 0; a < posMoves.size(); a++){
 						if(actions[a].getDirection() == lastAct.getDirection() && actions[a].getPower() == lastAct.getPower()){
-							if(verbose) System.out.println("Matched last: " + a + " out of " + actions.length);
+							if(verbose) System.out.println("Matched last: " + a + " out of " + actions.length + " - Util: " + utility[a]);
+							if(utility[a] < 5 && utility[a] > 0.05){
+								return differentPower(actions[a]);
+							}
 							return actions[a];
 						}
 					}
 				}
 
-				if(verbose) System.out.println("No consistent action: " + maxi + " out of " + actions.length);
+				if(verbose) System.out.println("No consistent action: " + maxi + " out of " + actions.length + " - Util: " + utility[maxi]);
 				return actions[maxi];
 			}
 		}
@@ -243,7 +312,7 @@ public class munchersOne extends BaseLearningAgent {
 		 * @param a the action performed 
 		 * @param value the reward received
 		 */
-		public void rewardAction(AgentAction a, double value) {
+		public void rewardAction(AgentAction a, double value, QMap nextMap) {
 			int i;
 			for (i = 0; i < actions.length; i++) {
 				if (a == actions[i]) break;
@@ -253,9 +322,8 @@ public class munchersOne extends BaseLearningAgent {
 				return;
 			}
 
-			utility[i] = (utility[i] * attempts[i]) + value;
-			attempts[i] = attempts[i] + 1;
-			utility[i] = utility[i]/attempts[i];
+			//new qlearning algorithm
+			utility[i] = utility[i] + alpha * (value + (gamma * nextMap.maxQ()) - utility[i]);
 		}
 		/**
 		 * Gets a string representation (for debugging).

@@ -4,6 +4,8 @@
 import java.awt.geom.Point2D;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.ArrayList;
+import java.util.Random;
 
 import jig.misc.rd.AirCurrentGenerator;
 import jig.misc.rd.Tile;
@@ -55,6 +57,7 @@ public class StateVector {
 	private int hashCode;
 
 	private static StateVector emptyState;
+
 	
 	private StateVector() {}
 	
@@ -65,9 +68,10 @@ public class StateVector {
 			emptyState.hashCode = 0;
 			emptyState.towerType = FanTower.class;
 		}
-		return emptyState;
-		
+		return emptyState;	
 	}
+
+
 	public static StateVector buildForTower(AirCurrentGenerator acg, LearningAgentSensorSystem sensors) {
 		
 		StateVector s = new StateVector();
@@ -99,27 +103,42 @@ public class StateVector {
 		int acg_x = acg.getGridX();
 		int i = 0;
 		int code;
+		boolean placed = false;
 		// TOP Part (North of Tower)
 		for (int y = acg_y - RADIUS; y < acg_y; y++) {
 			for(int x = acg_x - RADIUS, xe = acg_x+RADIUS+acg.getGridWidth(); x < xe; x++) {
 				code = sensors.getMapContentsCode(x,y);
 				//System.out.println("Code for " + x + "," + y + "is " + code);
-				s.cellContentsCode[i++] = code;
-				s.hashCode += code;
-				
+				if(!placed && code != 0){
+					placed = true;
+					s.cellContentsCode[i++] = code;
+					s.hashCode += code;
+				}
+				else
+					s.cellContentsCode[i++] = 0;
 			}
 		}		
 		// LEFT & RIGHT Parts (East and West of Tower)
 		for (int y = acg_y, ye = acg_y + acg.getGridHeight(); y < ye; y++) {
 			for(int x = acg_x - RADIUS; x < acg_x; x++) {
 				code = sensors.getMapContentsCode(x,y);
-				s.cellContentsCode[i++] = code;
-				s.hashCode += code;
+				if(!placed && code != 0){
+					placed = true;
+					s.cellContentsCode[i++] = code;
+					s.hashCode += code;
+				}
+				else
+					s.cellContentsCode[i++] = 0;
 			}
 			for(int x = acg_x + acg.getGridWidth(), xe = acg_x + acg.getGridWidth() + RADIUS; x < xe; x++) {
 				code = sensors.getMapContentsCode(x,y);
-				s.cellContentsCode[i++] = code;
-				s.hashCode += code;
+				if(!placed && code != 0){
+					placed = true;
+					s.cellContentsCode[i++] = code;
+					s.hashCode += code;
+				}
+				else
+					s.cellContentsCode[i++] = 0;
 			}
 
 		}
@@ -127,13 +146,22 @@ public class StateVector {
 		for (int y = acg_y + acg.getGridHeight(), ye = acg_y + acg.getGridHeight() + RADIUS; y < ye; y++) {
 			for(int x = acg_x - RADIUS, xe = acg_x+RADIUS+acg.getGridWidth(); x < xe; x++) {
 				code = sensors.getMapContentsCode(x, y);
-				s.cellContentsCode[i++] = code;
-				s.hashCode += code;
+				if(!placed && code != 0){
+					placed = true;
+					s.cellContentsCode[i++] = code;
+					s.hashCode += code;
+				}
+				else
+					s.cellContentsCode[i++] = 0;
 			}
 		}
 		
 		return s;
 		
+	}
+
+	public int emptyHash(){
+		return nsTowerWidth + nsTowerHeight + towerType.hashCode();
 	}
 	@Override
 	public int hashCode() { return hashCode; }
@@ -203,6 +231,24 @@ public class StateVector {
 		
 		return sb.toString();
 	}
+
+	public boolean isEmpty(boolean verbose) {
+		if(verbose){
+			System.out.println("");
+			for(int b : cellContentsCode){
+					System.out.print(b);
+			}
+			System.out.println("");
+		}
+
+		for(int b : cellContentsCode){
+			if(b != 0){
+				return false;
+			}
+		}
+		return true;
+	}
+
 	public int insectsSucked(AirCurrentGenerator acg, LearningAgentSensorSystem sensors){
 
 		int acg_y = acg.getGridY();
@@ -337,6 +383,8 @@ class CellContents {
 	public int getContentsCode() {
 		int code = 0;
 		String sn;
+
+		/*
 		for (InsectView iv : insects) {
 			sn = iv.shortName();
 			if (sn.equals("scarabug")) code += 1;
@@ -346,7 +394,28 @@ class CellContents {
 				System.err.println("Unknown insect type: " + sn);
 				code += 7;
 			}
+		}*/
+
+		int priority = 0;
+		for (InsectView iv : insects) {
+			sn = iv.shortName();
+			if (sn.equals("scarabug") && priority < 3){
+				priority = 3;
+				code = 1;
+			}
+			else if (sn.equals("scarlite") && priority < 2){
+				code = 10;
+				priority = 2;
+			}
+			else if (sn.equals("sqworm") && priority < 1){
+				priority = 1;
+				code = 100;
+			}
+			else {
+				code = 0;
+			}
 		}
+
 		return code;
 	}
 	public double getAirCurrentCode(AirCurrentGenerator acg){
