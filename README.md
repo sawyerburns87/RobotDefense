@@ -33,7 +33,8 @@
     - Finally, the new q learning algorithm was created: *utility[i] = utility[i] + alpha * (value + (gamma * nextMap.maxQ()) - utility[i])*
     
 - ### Part 3
+  - Modifying the agent to perform directed reasoning
+    - 
   - Cell Contents
     - Edited the getContents function so that the state is simplified to only look at a single bug
     - If there is more than one bug in a single cell, then the priority list in order is: Scara bug, Starlight Bug, and Squirm bug
-    - 
