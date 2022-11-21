@@ -1,10 +1,12 @@
-# RobotDefense
+# Artificial Intelligence Group Project
 
 ### Description
 - #### How to run
   - Ensure that you are in the correct directory that contains the project itself
   - First, build the agent: javac -cp rd881.jar *.java
   - Then run the jar file itself: java -jar rd881.jar
+- #### Group Members
+  - John Taylor, Phonethep Nakhonekhong, Sawyer Burns, Austin Lane
 
 ### What has been changed
 - #### Part One
