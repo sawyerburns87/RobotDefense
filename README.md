@@ -41,7 +41,7 @@
     
 - ### Part 3
   - All changes are found in *munchersOne* and *stateVector* 
-  -3a.) Modifying the agent to perform directed reasoning
+  - 3a.) Modifying the agent to perform directed reasoning
     - In order to find similar states, if we are in a state where there is more than one bug, then we simplify the state to a state we have seen before by ignoring all but one bug
   - 3b.) Cell Contents
     - Edited the getContents function so that the state is simplified to only look at a single bug
