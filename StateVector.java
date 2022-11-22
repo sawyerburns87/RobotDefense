@@ -55,6 +55,8 @@ public class StateVector {
 	
 	/** The hashcode for the state is precomputed and stored here */
 	private int hashCode;
+	private static int insectX;
+	private static int insectY;
 
 	private static StateVector emptyState;
 
@@ -113,9 +115,12 @@ public class StateVector {
 					placed = true;
 					s.cellContentsCode[i++] = code;
 					s.hashCode += code;
+					insectX = x;
+					insectY = y;
 				}
-				else
+				else{
 					s.cellContentsCode[i++] = 0;
+				}
 			}
 		}		
 		// LEFT & RIGHT Parts (East and West of Tower)
@@ -126,6 +131,8 @@ public class StateVector {
 					placed = true;
 					s.cellContentsCode[i++] = code;
 					s.hashCode += code;
+					insectX = x;
+					insectY = y;
 				}
 				else
 					s.cellContentsCode[i++] = 0;
@@ -136,6 +143,8 @@ public class StateVector {
 					placed = true;
 					s.cellContentsCode[i++] = code;
 					s.hashCode += code;
+					insectX = x;
+					insectY = y;
 				}
 				else
 					s.cellContentsCode[i++] = 0;
@@ -150,6 +159,8 @@ public class StateVector {
 					placed = true;
 					s.cellContentsCode[i++] = code;
 					s.hashCode += code;
+					insectX = x;
+					insectY = y;
 				}
 				else
 					s.cellContentsCode[i++] = 0;
@@ -250,7 +261,20 @@ public class StateVector {
 	}
 
 	public int insectsSucked(AirCurrentGenerator acg, LearningAgentSensorSystem sensors){
-
+		int cnt = 0;
+		for(int b : cellContentsCode){
+			if(b > 0){
+				cnt++;
+			}
+		}
+		if(cnt > 0 && sensors.getMapAirCode(insectX,insectY,acg) > 0){
+			return 1;
+		}
+		else if(cnt > 0){
+			return -1;
+		}
+		return 0;
+		/*
 		int acg_y = acg.getGridY();
 		int acg_x = acg.getGridX();
 
@@ -278,6 +302,7 @@ public class StateVector {
 			}
 		}
 		return code;
+		*/
 	}
 }
 

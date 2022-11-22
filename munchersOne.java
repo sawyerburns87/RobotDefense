@@ -45,9 +45,6 @@ public class munchersOne extends BaseLearningAgent {
 	 */
 	HashMap<AirCurrentGenerator, Integer> captureCount;
 
-	//reward for sucking a bug but if stuck at same action for > 3 states, start negative reward
-	HashMap<AirCurrentGenerator, Integer> concurrentCount;
-	double[] concurrentRewardScl = {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,-1.5,-2,-2,-5,-5,-5,-5,-5,-5,-5,-5,-5,-5,-5,-5,-5,-5,-5,-5,-5,-5,-5,-5,-5,-5,-5,-5,-5,-5,-5,-5,-5,-5,-5,-5,-5,-5,-5,-5,-5,-5};
 
 	HashMap<AirCurrentGenerator, Integer> crystalCount;
 	HashMap<AirCurrentGenerator, AgentAction> lastAction;
@@ -55,7 +52,7 @@ public class munchersOne extends BaseLearningAgent {
 	private static final AgentAction [] potentials;
 
 	double runningMS;
-	double targetMS = 200;
+	double targetMS = 150;
 
 	static {
 		Direction [] dirs = Direction.values();
@@ -85,7 +82,6 @@ public class munchersOne extends BaseLearningAgent {
 	public munchersOne() {
 		captureCount = new HashMap<AirCurrentGenerator,Integer>();
 		crystalCount = new HashMap<AirCurrentGenerator,Integer>();
-		concurrentCount = new HashMap<AirCurrentGenerator,Integer>();
 		lastAction = new HashMap<AirCurrentGenerator,AgentAction>();		
 	}
 	
@@ -113,7 +109,6 @@ public class munchersOne extends BaseLearningAgent {
 				actions.put(state, new QMap(potentials));
 			}
 
-			if (concurrentCount.get(acg) == null) concurrentCount.put(acg, 0);
 			if (captureCount.get(acg) == null) captureCount.put(acg, 0);
 			if (crystalCount.get(acg) == null) crystalCount.put(acg, acg.getConsumption());
 
@@ -137,36 +132,33 @@ public class munchersOne extends BaseLearningAgent {
 			if (lastAction.get(acg) != null ) {
 				// get the action map associated with the previous state
 				qmap = actions.get(lastState.get(acg));
-				double rewardStep = 0;
 
 				//Negative reward for power usage
-				//rewardStep += -(crystalsUsed-2)/24.0;
+				//qmap.rewardAction(lastAction.get(acg), (crystalsUsed)/24.0, actions.get(state), 0.9, 0);
+
 				if(isEmptySpace && lastAction.get(acg).getPower() == 0){
-					rewardStep += 5;
+					qmap.rewardAction(lastAction.get(acg), 8, actions.get(state), 0.9, 0);
 				}
 				else if(isEmptySpace && lastAction.get(acg).getPower() != 0){
-					rewardStep -= 5;
+					qmap.rewardAction(lastAction.get(acg), -8, actions.get(state), 0.9, 0);
 				}
 				
 				if (justCaptured) {
 					// capturing insects is good
-					rewardStep += 50.0;
+					qmap.rewardAction(lastAction.get(acg), 50.0, actions.get(state), 0.9, 0.2);
 					captureCount.put(acg,sensors.generators.get(acg));
 				}
 
 				
 				if(lastStateInsectsSucked > 0)
-					rewardStep += lastStateInsectsSucked * 2.0;
-				else
-					rewardStep += lastStateInsectsSucked;
-				//rewardStep = concurrentRewardScl[concurrentCount.get(acg)] * Math.abs(rewardStep);
+					qmap.rewardAction(lastAction.get(acg), lastStateInsectsSucked * 1.0, actions.get(state), 0.6, 0.2);
+				else if(!isEmptySpace)
+					qmap.rewardAction(lastAction.get(acg), lastStateInsectsSucked * 3.0, actions.get(state), 0.6, 0.2);
 
-				qmap.rewardAction(lastAction.get(acg), rewardStep, actions.get(lastState.get(acg)));
 
 				if (verbose) {
 					System.out.println("");
 					System.out.println("Is Empty Space: " + isEmptySpace);
-					System.out.println("Concurrent Actions: " + concurrentCount.get(acg));
 					System.out.println("Crystal Consumed: " + crystalsUsed);
 					System.out.println("Insects being sucked: " + lastStateInsectsSucked);
 					System.out.println("Last State for " + acg.toString() );
@@ -184,14 +176,8 @@ public class munchersOne extends BaseLearningAgent {
 			}
 
 			AgentAction bestAction = qmap.findBestAction(verbose, lastAction.get(acg));
+			if(verbose) System.out.println("New Act: " + bestAction.getDirection() + ", power: " + bestAction.getPower());
 			bestAction.doAction(acg);
-
-			if(lastAction.get(acg) != null && bestAction.getDirection() == lastAction.get(acg).getDirection() && bestAction.getPower() == lastAction.get(acg).getPower()){
-				concurrentCount.put(acg, concurrentCount.get(acg)+1);
-			}
-			else{
-				concurrentCount.put(acg, 0);
-			}
 
 			// finally, store our action so we can reward it later.
 			lastAction.put(acg, bestAction);
@@ -204,9 +190,6 @@ public class munchersOne extends BaseLearningAgent {
 	 */
 	static class QMap {
 		static Random RN = new Random();
-
-		double gamma = 0.9;
-		double alpha = 0.1;
 
 		private double[] utility; 		// current utility estimate
 		private AgentAction[] actions;  // potential actions to consider
@@ -233,14 +216,19 @@ public class munchersOne extends BaseLearningAgent {
 			return utility[maxi];
 		}
 
-		AgentAction differentPower(AgentAction startAction){
+		AgentAction differentPower(AgentAction startAction, AgentAction lastact, boolean verbose){
 			ArrayList<Integer> potentialActions = new ArrayList<Integer>();
 			for(int i = 0; i < actions.length; i++){
-				if(actions[i].getDirection() == startAction.getDirection() && startAction != actions[i]){
+				if(actions[i].getDirection() == startAction.getDirection() && actions[i].getPower() != 0 && actions[i] != lastact){
 					potentialActions.add(i);
 				}
 			}
-			return actions[potentialActions.get(Math.abs(RN.nextInt()) % potentialActions.size())];
+			AgentAction newAct = actions[potentialActions.get(Math.abs(RN.nextInt(potentialActions.size())))];
+			if(verbose){
+				System.out.println("Start Act: " + startAction.getDirection() + ", power: " + startAction.getPower());
+				
+			}
+			return newAct;
 		}
 
 		/**
@@ -270,13 +258,15 @@ public class munchersOne extends BaseLearningAgent {
 					maxcount++;
 				}
 			}
-			
-			double percSame = (posMoves.size() * 1.0 / actions.length);
+
+			double percSame = (posMoves.size() * 1.0 / (actions.length - 1));
 			//change power if random, change any if percSame is also high
-			if(utility[maxi] <= 0){
-				int which = RN.nextInt(actions.length);
+			if(percSame > 0.95){
+				int which;
+				which = RN.nextInt(actions.length);
+
 				if (verbose)
-					System.out.println( " -- Doing Random (" + which + ")!!" + " - Util: " + utility[which]);
+					System.out.println( " -- Doing Random (" + which + ") !!" + " - Util: " + utility[which]);
 
 				return actions[which];
 			}
@@ -284,8 +274,10 @@ public class munchersOne extends BaseLearningAgent {
 				if(posMoves.size() == 1){
 					int singleIndex = posMoves.get(0);
 					if(verbose) System.out.println("Single best action: #" + singleIndex + " - Util: " + utility[singleIndex]);
-					if(utility[singleIndex] < 5 && utility[singleIndex] > 0.05 && RN.nextDouble() < 0.5){
-						return differentPower(actions[singleIndex]);
+					if(utility[singleIndex] < 1.2 && RN.nextDouble() < 0.5){
+						//if(verbose)
+							//System.out.println("Different POWER");
+						return differentPower(actions[singleIndex], lastAct, verbose);
 					}
 					return actions[singleIndex];
 				}
@@ -293,9 +285,6 @@ public class munchersOne extends BaseLearningAgent {
 					for(int a = 0; a < posMoves.size(); a++){
 						if(actions[a].getDirection() == lastAct.getDirection() && actions[a].getPower() == lastAct.getPower()){
 							if(verbose) System.out.println("Matched last: " + a + " out of " + actions.length + " - Util: " + utility[a]);
-							if(utility[a] < 5 && utility[a] > 0.05){
-								return differentPower(actions[a]);
-							}
 							return actions[a];
 						}
 					}
@@ -312,7 +301,7 @@ public class munchersOne extends BaseLearningAgent {
 		 * @param a the action performed 
 		 * @param value the reward received
 		 */
-		public void rewardAction(AgentAction a, double value, QMap nextMap) {
+		public void rewardAction(AgentAction a, double value, QMap nextMap, double learnRate, double discount) {
 			int i;
 			for (i = 0; i < actions.length; i++) {
 				if (a == actions[i]) break;
@@ -323,7 +312,8 @@ public class munchersOne extends BaseLearningAgent {
 			}
 
 			//new qlearning algorithm
-			utility[i] = utility[i] + alpha * (value + (gamma * nextMap.maxQ()) - utility[i]);
+			utility[i] = utility[i] + learnRate * (value + (discount * nextMap.maxQ()) - utility[i]);
+			//utility[i] = utility[i] + learnRate * value;
 		}
 		/**
 		 * Gets a string representation (for debugging).

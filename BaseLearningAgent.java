@@ -217,6 +217,14 @@ class LearningAgentSensorSystem implements AgentSensoryInterface {
 		}
 	}
 
+	public double getMapAirCode(int gx, int gy, AirCurrentGenerator acg) {
+		try {
+			return map[gx][gy].getAirCurrentCode(acg);
+		} catch (ArrayIndexOutOfBoundsException aob) {
+			return 0;
+		}
+	}
+
 	/**
 	 * This method is called by the environment to indcate an airCurrentGenerator changed its
 	 * state (power or direction).
