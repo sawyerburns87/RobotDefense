@@ -15,20 +15,21 @@
 - #### Part One
   - All of these changes can be found in *munchersOne.java*
   - 1a.) Modifying the agent so that they can turn off vaccumms when necessary
-    - Actions were added to the agent so that it allows power 0 to be used in *any* direction
-    - In the *step function*, the last state's crystal usage is cached and negatively rewards the action *if* it is using too much power
-      - In turn, the generators will incrementally want to use less power or no power
+    - For all directions, power level 0 was added to the acitons list. This gives us the ability to reward for no power usage in the correct situation.
+    - In the *step function*, the last state is checked to see if it was an *empty state*, if it was an empty state and it was using no power - reward. If it was not an empty state and it was using no power - negative reward, we want to use power when bugs are in the vicinity.
+      - In turn, the generators will choose to use power when there are bugs and not use power when there are no bugs.
   - 1b.) Modifying the agent so that it considers a wider variety of actions
-    - Instead of using max power for *all* actions, we use power 2 and power 4 for *all* directions
-    - The agent should already have the capability to learn which to use and when
+    - Instead of using max power for *all* actions, we added ability to use power 0 (as stated above) and power 2 for *all* directions.
+    - The agent should already have the capability to learn which to use and when. However, because there are 3 times more actions, the agent will take much longer to learn. Because of this we added a reward function in the *step function* that negativley rewards actions that are not pointing at the bug in its vicinity. This reward function cuts down the initial learning period significantly.
   - 1c.) Comparing the agent's performance
-    - Ours uses less crystals, captures more bugs, and improves overtime
+    - Ours uses less crystals, captures more bugs, and improves faster
   - 1d.) Modifying the reward function so that the agent performs well on test maps
-    - In order to get the agent to perform well on the other maps, we did two things: penalizing the agent if it didn't capture the bug by a negative value, and editing the reward value for the other maps
+    - In order to get the agent to perform well on the other maps, we did several things: make the agent prefer sides that the bug is on more often(not included in the final version to avoid an overfitted model), and we edited the reward values.
     
 - #### Part 2
   - All changes are still in *munchersOne.java*
   - 2a.) Changing the method of tie breaking for equally valued actions so that the agent is more likely to keep doing the same action if two or more have the same action value
+    - Add 'lastAction' parameter to *findBestAction* function. 
     - When there are multiple actions that are tied *for* the best utility, put them into an ArrayList
     - Iterate through the arrayList and test if *any* are equal to the current action, if so, pick that action
   - 2b.) Implementing Q learning
@@ -42,7 +43,7 @@
 - ### Part 3
   - All changes are found in *munchersOne* and *stateVector* 
   - 3a.) Modifying the agent to perform directed reasoning
-    - In order to find similar states, if we are in a state where there is more than one bug, then we simplify the state to a state we have seen before by ignoring all but one bug
+    - In order to solve this problem, we abstracted it into 'simplify current state into one that we've seen before'. To do this, if we are in a state where there is more than one bug, then we prioritize one of the bugs and it's like the others aren't there. Therefore, we don't need new, unknown states everytime there is another bug in the radius.
   - 3b.) Cell Contents
-    - Edited the getContents function so that the state is simplified to only look at a single bug
+    - Edited the getContents function so that when there is more than 1 bug in a cell, simplify it to only look at a single bug.
     - If there is more than one bug in a single cell, then the priority list in order is: Scara bug, Starlight Bug, and Squirm bug
