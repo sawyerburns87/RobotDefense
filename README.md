@@ -22,9 +22,10 @@
     - Instead of using max power for *all* actions, we added ability to use power 0 (as stated above) and power 2 for *all* directions.
     - The agent should already have the capability to learn which to use and when. However, because there are 3 times more actions, the agent will take much longer to learn. Because of this we added a reward function in the *step function* that negativley rewards actions that are not pointing at the bug in its vicinity. This reward function cuts down the initial learning period significantly.
   - 1c.) Comparing the agent's performance
-    - Ours uses less crystals, captures more bugs, and improves faster
+    - While the capturing to uncaptured ratios for both the LearnerOne agent and our agent our similar for the 5000-crystal time frame, our agent captures nearly twice as many bugs. If the agents had more time to run, our agent's capture-to-uncaptured ratio would be considerably higher, as the LearnerOne agent learns to capture only one type of bug efficiently; while ours, if given enough time, can learn how to efficiently capture all 3.
   - 1d.) Modifying the reward function so that the agent performs well on test maps
-    - In order to get the agent to perform well on the other maps, we did several things: make the agent prefer sides that the bug is on more often(not included in the final version to avoid an overfitted model), and we edited the reward values.
+    - In order to get the agent to perform well on the other maps, we did several things: make the agent prefer sides that the bug is on more often(not included in the final version to avoid an overfitted model).
+    - We modificed the values of the reward functions. For the simple1.dat map, we cut the reward values for power usage (lines 139 and 142 in our agent) in half. 
     
 - #### Part 2
   - All changes are still in *munchersOne.java*
