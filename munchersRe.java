@@ -21,6 +21,7 @@ public class munchersRe extends BaseLearningAgent {
 	HashMap<AirCurrentGenerator, Integer> captureCount;
 	HashMap<AirCurrentGenerator, AgentAction> lastAction;
 	private static final AgentAction [] potentials;
+	HashMap<AirCurrentGenerator, Integer> crystalCount;
 
 	double runningMS;
 	double targetMS = 800;
@@ -43,7 +44,8 @@ public class munchersRe extends BaseLearningAgent {
 	
 	public munchersRe() {
 		captureCount = new HashMap<AirCurrentGenerator,Integer>();
-		lastAction = new HashMap<AirCurrentGenerator,AgentAction>();		
+		lastAction = new HashMap<AirCurrentGenerator,AgentAction>();
+		crystalCount = new HashMap<AirCurrentGenerator,Integer>();		
 	}
 	
 	public void step(long deltaMS) {
@@ -64,10 +66,15 @@ public class munchersRe extends BaseLearningAgent {
 				actions.put(state, new QMap(potentials));
 			}
 			if (captureCount.get(acg) == null) captureCount.put(acg, 0);
+			if (crystalCount.get(acg) == null) crystalCount.put(acg, acg.getConsumption());
 
 
 			boolean justCaptured;
 			justCaptured = (captureCount.get(acg) < sensors.generators.get(acg));
+
+			int crystalsUsed = acg.getConsumption() - crystalCount.get(acg);
+			crystalCount.put(acg, acg.getConsumption());
+
 
 			boolean verbose = (RobotDefense.getGame().getSelectedObject() == acg);
 			boolean isEmptySpace = lastState.get(acg).hashCode() == lastState.get(acg).emptyHash();
@@ -82,13 +89,14 @@ public class munchersRe extends BaseLearningAgent {
 				else if(isEmptySpace && lastAction.get(acg).getPower() != 0){
 					qmap.rewardAction(lastAction.get(acg), -8, actions.get(state), 0.9, 0);
 				}
+				//qmap.rewardAction(lastAction.get(acg), -(crystalsUsed)/24.0, actions.get(state), 0.3, 0);
 				
-				//If there is an insect on the map in its radius and its missing it
+				//If there is an insect on the map in its radius and its missing it -> negative reward
 				if(lastStateInsectsSucked < 0)
-					qmap.rewardAction(lastAction.get(acg), lastStateInsectsSucked * 1, actions.get(state), 0.6, 0);
-
+					qmap.rewardAction(lastAction.get(acg), lastStateInsectsSucked * 1, actions.get(state), 0.75, 0);
+				
 				if (justCaptured) {
-					qmap.rewardAction(lastAction.get(acg), 30.0, actions.get(state), 0.7, 0.3);
+					qmap.rewardAction(lastAction.get(acg), 30.0, actions.get(state), 0.5, 0.5);
 					captureCount.put(acg,sensors.generators.get(acg));
 				}
 
