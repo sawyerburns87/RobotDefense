@@ -8,7 +8,7 @@ import java.io.IOException;
 import java.io.PrintStream;
 import java.util.HashMap;
 import java.util.Random;
-import java.util.ArrayList; 
+import java.util.ArrayList;
 
 import jig.misc.rd.AirCurrentGenerator;
 import jig.misc.rd.Direction;
@@ -52,7 +52,7 @@ public class munchersOne extends BaseLearningAgent {
 	private static final AgentAction [] potentials;
 
 	double runningMS;
-	double targetMS = 150;
+	double targetMS = 100;
 
 	static {
 		Direction [] dirs = Direction.values();
@@ -261,7 +261,7 @@ public class munchersOne extends BaseLearningAgent {
 
 			double percSame = (posMoves.size() * 1.0 / (actions.length - 1));
 			//change power if random, change any if percSame is also high
-			if(percSame > 0.95){
+			if(percSame > 0.95 || utility[maxi] < 0){
 				int which;
 				which = RN.nextInt(actions.length);
 
@@ -274,7 +274,7 @@ public class munchersOne extends BaseLearningAgent {
 				if(posMoves.size() == 1){
 					int singleIndex = posMoves.get(0);
 					if(verbose) System.out.println("Single best action: #" + singleIndex + " - Util: " + utility[singleIndex]);
-					if(utility[singleIndex] < 1.2 && RN.nextDouble() < 0.5){
+					if(utility[singleIndex] < 3.5 && RN.nextDouble() < 0.4){
 						//if(verbose)
 							//System.out.println("Different POWER");
 						return differentPower(actions[singleIndex], lastAct, verbose);
