@@ -25,7 +25,7 @@
     - While the capturing to uncaptured ratios for both the LearnerOne agent and our agent our similar for the 5000-crystal time frame, our agent captures nearly twice as many bugs. If the agents had more time to run, our agent's capture-to-uncaptured ratio would be considerably higher, as the LearnerOne agent learns to capture only one type of bug efficiently; while ours, if given enough time, can learn how to efficiently capture all 3.
   - 1d.) Modifying the reward function so that the agent performs well on test maps
     - In order to get the agent to perform well on the other maps, we did several things: make the agent prefer sides that the bug is on more often(not included in the final version to avoid an overfitted model).
-    - We modificed the values of the reward functions. For the simple1.dat map, we cut the reward values for power usage (lines 139 and 142 in our agent) in half. For the simple4-4pack, we doubled the the values for power usage. 
+    - We modificed the values of the reward functions. For the simple1.dat map, we cut the reward values for power usage from 8.0 to 4.0 (lines 139 and 142 in our agent) in half. For the simple4-4pack, we doubled the the values for power usage from 8.0 to 16.0. 
     
 - #### Part 2
   - All changes are still in *munchersOne.java*
