@@ -45,7 +45,7 @@ public class munchersRe extends BaseLearningAgent {
 	public munchersRe() {
 		captureCount = new HashMap<AirCurrentGenerator,Integer>();
 		lastAction = new HashMap<AirCurrentGenerator,AgentAction>();
-		crystalCount = new HashMap<AirCurrentGenerator,Integer>();		
+		crystalCount = new HashMap<AirCurrentGenerator,Integer>();
 	}
 	
 	public void step(long deltaMS) {
@@ -96,7 +96,7 @@ public class munchersRe extends BaseLearningAgent {
 					qmap.rewardAction(lastAction.get(acg), lastStateInsectsSucked * 1, actions.get(state), 0.75, 0);
 				
 				if (justCaptured) {
-					qmap.rewardAction(lastAction.get(acg), 30.0, actions.get(state), 0.5, 0.5);
+					qmap.rewardAction(lastAction.get(acg), 30.0, actions.get(state), 0.6, 0.4);
 					captureCount.put(acg,sensors.generators.get(acg));
 				}
 
@@ -190,13 +190,12 @@ public class munchersRe extends BaseLearningAgent {
 			}
 			else {
 				//try to match last action
-				/*
 				for(int a = 0; a < posMoves.size(); a++){
 					if(actions[posMoves.get(a)] == lastAct){
 						if(verbose) System.out.println( " -- Matched last move! #" + posMoves.get(a));
 						return lastAct;
 					}
-				}*/
+				}
 
 				//get random of the max actions
 				int whichMax = RN.nextInt(maxcount);
