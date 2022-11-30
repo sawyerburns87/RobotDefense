@@ -15,7 +15,7 @@ import jig.misc.rd.Direction;
 import jig.misc.rd.RobotDefense;
 
 
-public class munchersRe extends BaseLearningAgent {
+public class learnerMunchers extends BaseLearningAgent {
 
 	HashMap<StateVector,QMap> actions = new HashMap<StateVector,QMap>();
 	HashMap<AirCurrentGenerator, Integer> captureCount;
@@ -42,7 +42,7 @@ public class munchersRe extends BaseLearningAgent {
 
 	}
 	
-	public munchersRe() {
+	public learnerMunchers() {
 		captureCount = new HashMap<AirCurrentGenerator,Integer>();
 		lastAction = new HashMap<AirCurrentGenerator,AgentAction>();
 		crystalCount = new HashMap<AirCurrentGenerator,Integer>();
