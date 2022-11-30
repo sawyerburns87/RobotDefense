@@ -25,7 +25,7 @@
     - Our agent's capture-to-uncaptured ratio is considerably higher than the ratio of the LearnerOne agent, also our agent captures 3 to 4 times as many bugs overall than the LearnerOne agent. The LearnerOne agent learns to capture only one type of bug efficiently, while ours efficiently learns how to capture all three. Also, the LearnerOne captures more bugs in the beginning, but does not capture more bugs in the end; while ours takes more time to learn in the beginning to capture all 3 types of bugs and consequently captures less bugs in the beginning but captures way more bugs in the end.
   - 1d.) Modifying the reward function so that the agent performs well on test maps
     - In order to get the agent to perform well on the other maps, we did several things: make the agent prefer sides that the bug is on more often(not included in the final version to avoid an overfitted model).
-    - We modificed the values of the reward functions. For the simple1.dat map, we cut the reward values for power usage from 8.0 to 4.0 (lines 139 and 142 in our agent) in half. For the simple4-4pack, we doubled the the values for power usage from 8.0 to 16.0. 
+    - We modificed the values of the reward functions. For the _simple1.dat_ map, we cut the reward values for power usage from 8.0 to 4.0 (lines 139 and 142 in our agent) in half. For the _simple4-4pack.map_, we doubled the the values for power usage from 8.0 to 16.0. 
     
 - #### Part 2
   - All changes are still in *munchersOne.java*
